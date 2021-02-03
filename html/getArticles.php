@@ -15,19 +15,13 @@ if ($conn->connect_error) {
 
                   $sql = "SELECT id, nome, prezzo, quantità FROM articles";
                   $result = $conn->query($sql);
-                  $output = "var artList = new Vue({
-                    el: '#showcase',
-                    data: {
-                      arts:[
-                        {";
+                  $output = array();
                   if ($result->num_rows > 0) {
                     // output data of each row
                     while($row = $result->fetch_assoc()) {
-                        $output .= "art: new dbEntry(". $row["id"] .", ". $row["nome"] .", " . $row["prezzo"] . ", " . $row["quantità"] . "), ";
+                        array_push($output, '{"id": '. $row['id'] .', "nome": "'. $row['nome'] .'", "prezzo": ' . $row['prezzo'] . ', "quantità": ' . $row['quantità'] . '}');
                     }
-                    $output = chop($output, ", ");
-                    $output .= "}] }})";
-                    echo $output;
+            
                     
                   } else {
                     echo "0 results";
@@ -36,11 +30,5 @@ if ($conn->connect_error) {
                    
                   ?>
 
-var artList = new Vue({
-      el: '#showcase',
-      data: {
-        arts:[
-          {art:""}
-        ]
-      }
-    })
+
+  

@@ -1,7 +1,11 @@
+<?php session_start()?>
 <!DOCTYPE html>
 <html>
 <head>
 <?php
+    
+
+    include("html/getArticles.php");
     $servername = "localhost";
     $username = "root";
     $password = "";
@@ -40,8 +44,10 @@
     
     <div id="showcase" class="col-lg-6">
               <span>Articoli disponibili:</span> 
-              <ul class="articleList container-fluid">
-                <li v-for="art in arts" v-html="art.dbEntry"></li>
+              <ul class="articleList col-lg-12">
+                <li v-for="a in arts" v-html="a.art.printData()">
+                      
+                </li>
                   <?php 
                   /*$sql = "SELECT id, nome, prezzo, quantità FROM articles";
                   $result = $conn->query($sql);
@@ -96,7 +102,7 @@
     $conn->close();
     */
     ?>
-    <script id="artListScript"></script>
+    <!--<script id="artListScript"></script>-->
     <script>
     var cart = new Vue({
       el: '#cart-div',
@@ -108,13 +114,41 @@
     })
 
     class dbEntry {
-      constructor(id, nome, prezzo, quantità){
+      constructor(id="", nome="", prezzo="", quantità=""){
         this.id = id;
         this.nome = nome;
         this.prezzo = prezzo;
         this.quantità = quantità;
       }
+      printData(){
+        let str = this.nome + " " + this.prezzo + " <input type='number' min='0' max='" + this.quantità + "' required><button type='button' onclick='cart.items.push({text:fixContent(this.parentNode)});'>Add to Cart</button>";
+        return str;
+      }
     }    
+
+    var artList = new Vue({
+      el: '#showcase',
+      data: {
+        arts:[
+          {art: new dbEntry()}
+        ]
+      }
+    })
+
+    console.log("AAAAAAAAAAAAAAAAAAAAAaa");
+    var temp = <?php echo json_encode($output, JSON_HEX_TAG);?>;
+    console.log("Result =" + temp);
+    for(te of temp){
+      console.log("Type of te =" + typeof te);
+      let t = JSON.parse(te);
+      console.log("Type of t =" + typeof t);
+      var it = new dbEntry(t.id, t.nome, t.prezzo, t.quantità);
+     
+      //var text = it.printData();
+      artList.arts.push({art: it});
+    }
+    artList.arts.shift();
+    console.log("arts = " + artList.arts);
 
     /*var artList = new Vue({
       el: '#showcase',
@@ -126,7 +160,9 @@
     })*/
 
     //var list = document.getElementByID("articleList");
-      console.log("I'm HERE");
+
+    //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      /*console.log("I'm HERE");
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -135,7 +171,8 @@
         //"art: {" + ar.id +", " + ar.nome + ", " + ar.prezzo + ", " + ar.quantità + "}"
       }
       xhttp.open("GET", "html/getArticles.php", true);
-      xhttp.send();
+      xhttp.send();*/
+      //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     </script>
 <!--<script>
     function appendItem(prevItem) {
@@ -148,7 +185,7 @@
     
 
     function fixContent(item){
-      if(app.items[0].text === "") app.items.pop();
+      if(cart.items[0].text === "") cart.items.pop();
       //console.log("fixContent");
       let str = item.innerHTML;
       let end = str.indexOf("<input");
