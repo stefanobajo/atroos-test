@@ -4,16 +4,34 @@
 <head>
 <?php
     
-
+    include("html/head.php");
     include("html/getArticles.php");
     $servername = "localhost";
     $username = "root";
     $password = "";
     $dbname = "atroos_db";
     
+    $loggedUser = "";
+    $moneyLeft = 0;
     // Create connection
     $conn = new mysqli($servername, $username, $password, $dbname);
     
+    $sql = "SELECT nome, saldo FROM users WHERE nome = 'Utente1'";
+                  $result = $conn->query($sql);
+                  
+                  if ($result->num_rows > 0) {
+                    // output data of each row
+                    while($row = $result->fetch_assoc()) {
+                        $loggedUser = $row["nome"];
+                        $moneyLeft = $row["saldo"];
+                    }
+            
+                    
+                  } else {
+                    echo "0 results";
+                  }
+                  $conn->close();
+
     // Check connection
     if ($conn->connect_error) {
       die("Connection failed: " . $conn->connect_error);
@@ -24,65 +42,35 @@
     $PageTitle="Atroos - Test";
 
 ?>
-
-<?php include("html/head.php"); ?>
 </head>
 <body>
 <!-- body -->
 <div id="header">
     <div id="home-title">
         <h1>TEST</h1>
-        <br>
+        <h2 style="text-align:right;"><?php echo $loggedUser?> il tuo saldo è: <?php echo $moneyLeft?> Euro.</h2>
       </div>
 </div>  
 
 <!-- menu -->
 <div id="body-page" class="" role="main">
   
-
   <div class="row">
     
     <div id="showcase" class="col-lg-6">
               <span>Articoli disponibili:</span> 
               <ul class="articleList col-lg-12">
-                <li v-for="a in arts" v-html="a.art.printData()">
-                      
-                </li>
-                  <?php 
-                  /*$sql = "SELECT id, nome, prezzo, quantità FROM articles";
-                  $result = $conn->query($sql);
-        
-                  if ($result->num_rows > 0) {
-                    // output data of each row
-                    while($row = $result->fetch_assoc()) {
-                      echo "<li class='container-fluid'>
-                      <span style=\"font-weight:bold\">" . $row["nome"] . "</span>
-                      -------------"
-                      . $row["prezzo"] . "Euro 
-                      <input type='number' min='0' max='". $row["quantità"] ."' required>
-                      <button type='button' onclick='app.items.push({text:fixContent(this.parentNode)});'>Add to Cart</button>
-                      
-                      </li>";
-                    }
-                  } else {
-                    echo "0 results";
-                  }
-                  $conn->close();
-                   */
-                  ?>
+                <li v-for="a in arts" v-html="a.art.printData(false)" v-bind:id="a.art.id"></li>
              </ul>
-  
     </div>
 
-
-    
     <div id="cart-div" class="col-lg-6">
       <span>Carrello:</span>
-        <ul id="cart" class="articleList container-fluid">
-            <li v-for="item in items" v-html="item.text"></li>
+        <ul class="articleList container-fluid">
+            <li v-for="c in cArts" v-html="c.cArt.printData(true)" v-bind:id="c.cArt.id"></li>
         </ul>
-        <span id="tot">Totale:</span>
-        <button type='button' onclick='processCart()'>Buy</button>
+        Totale:<span id="tot"></span>
+        <button type="button" onclick="processCart()">Buy</button>
     </div>
 
   </div>
@@ -102,29 +90,71 @@
     $conn->close();
     */
     ?>
-    <!--<script id="artListScript"></script>-->
     <script>
-    var cart = new Vue({
-      el: '#cart-div',
-      data: {
-        items:[
-          {text:""}
-        ] 
+    function updateTot(){
+      let tot = 0;
+      if(cart.cArts.length !== 0){
+        for(c of cart.cArts){
+          tot += c.cArt.quantitàIniziale * c.cArt.prezzo;
+        }
       }
-    })
-
+      document.getElementById("tot").innerHTML = tot;
+    }
+    </script>
+    <script>
+    
     class dbEntry {
-      constructor(id="", nome="", prezzo="", quantità=""){
+      constructor(id=-1, nome="", prezzo=0, quantitàIniziale=0){
         this.id = id;
         this.nome = nome;
         this.prezzo = prezzo;
-        this.quantità = quantità;
+        this.quantitàIniziale = quantitàIniziale;
+        this.quantitàResidua = quantitàIniziale;
       }
-      printData(){
-        let str = this.nome + " " + this.prezzo + " <input type='number' min='0' max='" + this.quantità + "' required><button type='button' onclick='cart.items.push({text:fixContent(this.parentNode)});'>Add to Cart</button>";
-        return str;
+
+      copy(tobeCopied){
+        this.id = tobeCopied.id;
+        this.nome = tobeCopied.nome;
+        this.prezzo = tobeCopied.prezzo;
+        this.quantitàIniziale = tobeCopied.quantitàInziale;
+        this.quantitàResidua = tobeCopied.quantitàResidua;
       }
-    }    
+
+      printData(isCart){
+        if(isCart){
+          let str = "";
+          if(this.quantitàIniziale != 0){
+            str = this.quantitàIniziale + "x " + this.nome + " " + this.prezzo + "<button type='button' onclick='reverseSelection(this)'>X</button>";
+          }
+          else{
+            str="";
+          } 
+          return str;
+        }
+        else{
+          let str = "";
+          if(this.quantitàResidua > 0){
+            str = "<span id='" + this.id +"'>" + this.nome + " " + this.prezzo + "</span> <input type='number' min='1' max='" + this.quantitàResidua + "' required><button type='button' onclick='transferArticle(this.parentNode);'>Add to Cart</button>";
+          }
+          else{
+            str = "Out of stock :(";
+          }
+          return str;
+        }
+        
+      }
+     
+    }  
+
+    var cart = new Vue({
+      el: '#cart-div',
+      data: {
+        cArts:[
+          {cArt: new dbEntry()}
+        ] 
+      }
+    })
+  
 
     var artList = new Vue({
       el: '#showcase',
@@ -135,62 +165,57 @@
       }
     })
 
-    console.log("AAAAAAAAAAAAAAAAAAAAAaa");
+   
     var temp = <?php echo json_encode($output, JSON_HEX_TAG);?>;
-    console.log("Result =" + temp);
+ 
     for(te of temp){
-      console.log("Type of te =" + typeof te);
+   
       let t = JSON.parse(te);
-      console.log("Type of t =" + typeof t);
-      var it = new dbEntry(t.id, t.nome, t.prezzo, t.quantità);
-     
-      //var text = it.printData();
+  
+      var it = new dbEntry(t.id, t.nome, t.prezzo, t.quantitàIniziale);
+  
       artList.arts.push({art: it});
     }
     artList.arts.shift();
-    console.log("arts = " + artList.arts);
-
-    /*var artList = new Vue({
-      el: '#showcase',
-      data: {
-        arts:[
-          {art:""}
-        ]
-      }
-    })*/
-
-    //var list = document.getElementByID("articleList");
-
-    //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-      /*console.log("I'm HERE");
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          document.getElementById("artListScript").innerHTML = this.responseText;
-        }
-        //"art: {" + ar.id +", " + ar.nome + ", " + ar.prezzo + ", " + ar.quantità + "}"
-      }
-      xhttp.open("GET", "html/getArticles.php", true);
-      xhttp.send();*/
-      //AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    updateTot();
     </script>
-<!--<script>
-    function appendItem(prevItem) {
-      let list = prev.Item.parentNode;
-      var node = document.createTextNode("<li>{{newItem}}</li>");
-      list.appendchild(node);
-    }
-</script>-->
-    <script>
-    
 
-    function fixContent(item){
-      if(cart.items[0].text === "") cart.items.pop();
-      //console.log("fixContent");
-      let str = item.innerHTML;
-      let end = str.indexOf("<input");
-      return str.slice(0, end-1);       
-    }
+    <script>
+      function transferArticle(item){
+        if(cart.cArts[0].cArt.nome === "") cart.cArts.pop();
+        //console.log("fixContent");
+        let selector = item.getAttribute("id");
+        let flag = false;
+        for(c of cart.cArts){
+            if(c.cArt.id == selector) {
+              console.log("PRIMA =" + artList.arts[Number(selector)].art.quantitàResidua);
+              artList.arts[Number(selector)].art.quantitàResidua -= 1; 
+              console.log("DOPO =" + artList.arts[Number(selector)].art.quantitàResidua);
+              c.cArt.quantitàIniziale += 1;
+              flag = true;
+            }
+          }
+        if(!flag){
+          let temp = new dbEntry();
+          temp.copy(artList.arts[Number(selector)].art);
+          console.log("PRIMA =" + artList.arts[Number(selector)].art.quantitàResidua);
+          artList.arts[Number(selector)].art.quantitàResidua -= 1;  
+          console.log("DOPO =" + artList.arts[Number(selector)].art.quantitàResidua);
+          temp.quantitàIniziale = artList.arts[Number(selector)].art.quantitàIniziale - artList.arts[Number(selector)].art.quantitàResidua;
+          cart.cArts.push({cArt:temp}); 
+        }
+        updateTot();
+      }
+      function reverseSelection(article){
+        let selector = article.parentNode.getAttribute("id");
+        artList.arts[Number(selector)].art.quantitàResidua += 1; 
+        let cartItem;
+        for(c of cart.cArts){
+            if(c.cArt.id == selector) cartItem = c;
+          }
+        cartItem.cArt.quantitàIniziale -= 1;
+        updateTot();
+      }
     </script>
     <script>
     function processCart(){
