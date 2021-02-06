@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Creato il: Gen 30, 2021 alle 16:50
+-- Creato il: Feb 06, 2021 alle 16:09
 -- Versione del server: 10.4.11-MariaDB
 -- Versione PHP: 7.4.6
 
@@ -64,16 +64,39 @@ CREATE TABLE `orders` (
 --
 
 CREATE TABLE `users` (
-  `Nome` varchar(20) NOT NULL
+  `Nome` varchar(20) NOT NULL,
+  `Saldo` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dump dei dati per la tabella `users`
 --
 
-INSERT INTO `users` (`Nome`) VALUES
-('Utente1'),
-('Utente2');
+INSERT INTO `users` (`Nome`, `Saldo`) VALUES
+('Utente1', 350),
+('Utente2', 200);
+
+--
+-- Indici per le tabelle scaricate
+--
+
+--
+-- Indici per le tabelle `articles`
+--
+ALTER TABLE `articles`
+  ADD PRIMARY KEY (`ID`);
+
+--
+-- Indici per le tabelle `orders`
+--
+ALTER TABLE `orders`
+  ADD PRIMARY KEY (`codice_ord`);
+
+--
+-- Indici per le tabelle `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`Nome`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

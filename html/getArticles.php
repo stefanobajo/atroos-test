@@ -1,4 +1,4 @@
-<?php 
+<?php
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -19,7 +19,7 @@ if ($conn->connect_error) {
                   if ($result->num_rows > 0) {
                     // output data of each row
                     while($row = $result->fetch_assoc()) {
-                        array_push($output, '{"id": '. $row['id'] .', "nome": "'. $row['nome'] .'", "prezzo": ' . $row['prezzo'] . ', "quantitàIniziale": ' . $row['quantità'] . '}');
+                        array_push($output, '{"id": '. $row['id'] .', "nome": "'. $row['nome'] .'", "prezzo": ' . $row['prezzo'] . ', "quantità": ' . $row['quantità'] . '}');
                     }
             
                     
@@ -27,8 +27,9 @@ if ($conn->connect_error) {
                     echo "0 results";
                   }
                   $conn->close();
-                   
                   ?>
+                   
+              
 
 
   

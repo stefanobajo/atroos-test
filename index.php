@@ -1,46 +1,7 @@
-<?php session_start()?>
-<!DOCTYPE html>
-<html>
-<head>
-<?php
-    
-    include("html/head.php");
-    include("html/getArticles.php");
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "atroos_db";
-    
-    $loggedUser = "";
-    $moneyLeft = 0;
-    // Create connection
-    $conn = new mysqli($servername, $username, $password, $dbname);
-    
-    $sql = "SELECT nome, saldo FROM users WHERE nome = 'Utente1'";
-                  $result = $conn->query($sql);
-                  
-                  if ($result->num_rows > 0) {
-                    // output data of each row
-                    while($row = $result->fetch_assoc()) {
-                        $loggedUser = $row["nome"];
-                        $moneyLeft = $row["saldo"];
-                    }
-            
-                    
-                  } else {
-                    echo "0 results";
-                  }
-                  $conn->close();
-
-    // Check connection
-    if ($conn->connect_error) {
-      die("Connection failed: " . $conn->connect_error);
-    }
-   
-
-
-    $PageTitle="Atroos - Test";
-
+<?php 
+  require("html/head.php");
+  include("html/getArticles.php");
+  //include("html/updateSaldo.php");
 ?>
 </head>
 <body>
@@ -48,7 +9,7 @@
 <div id="header">
     <div id="home-title">
         <h1>TEST</h1>
-        <h2 style="text-align:right;"><?php echo $loggedUser?> il tuo saldo è: <?php echo $moneyLeft?> Euro.</h2>
+        <h2 style="text-align:right;"><?php echo $_SESSION["loggedUser"]?> il tuo saldo è:<span id="uMoney"><?php echo $_SESSION["moneyLeft"]?></span> Euro.</h2>
       </div>
 </div>  
 
@@ -95,7 +56,7 @@
       let tot = 0;
       if(cart.cArts.length !== 0){
         for(c of cart.cArts){
-          tot += c.cArt.quantitàIniziale * c.cArt.prezzo;
+          tot += c.cArt.quantità * c.cArt.prezzo; //
         }
       }
       document.getElementById("tot").innerHTML = tot;
@@ -104,27 +65,29 @@
     <script>
     
     class dbEntry {
-      constructor(id=-1, nome="", prezzo=0, quantitàIniziale=0){
+      constructor(id=-1, nome="", prezzo=0, quantità=0){
         this.id = id;
         this.nome = nome;
         this.prezzo = prezzo;
-        this.quantitàIniziale = quantitàIniziale;
-        this.quantitàResidua = quantitàIniziale;
+        this.quantità = quantità;
+        //Iniziale = quantitàIniziale;
+        //this.quantitàResidua = quantitàIniziale;
       }
 
       copy(tobeCopied){
         this.id = tobeCopied.id;
         this.nome = tobeCopied.nome;
         this.prezzo = tobeCopied.prezzo;
-        this.quantitàIniziale = tobeCopied.quantitàInziale;
-        this.quantitàResidua = tobeCopied.quantitàResidua;
+        this.quantità = tobeCopied.quantità;
+        //Iniziale = tobeCopied.quantitàInziale;
+        //this.quantitàResidua = tobeCopied.quantitàResidua;
       }
 
       printData(isCart){
         if(isCart){
           let str = "";
-          if(this.quantitàIniziale != 0){
-            str = this.quantitàIniziale + "x " + this.nome + " " + this.prezzo + "<button type='button' onclick='reverseSelection(this)'>X</button>";
+          if(this.quantità != 0){
+            str = this.quantità + "x " + this.nome + " " + this.prezzo + "<button type='button' onclick='reverseSelection(this)'>X</button>"; //
           }
           else{
             str="";
@@ -133,8 +96,8 @@
         }
         else{
           let str = "";
-          if(this.quantitàResidua > 0){
-            str = "<span id='" + this.id +"'>" + this.nome + " " + this.prezzo + "</span> <input type='number' min='1' max='" + this.quantitàResidua + "' required><button type='button' onclick='transferArticle(this.parentNode);'>Add to Cart</button>";
+          if(this.quantità > 0){
+            str = "<span id='" + this.id +"'>" + this.nome + " " + this.prezzo + "</span><input type='number' min='1' max='" + this.quantità + "' value='1' required><button type='button' onclick='transferArticle(this.parentNode);'>Add to Cart</button>";//
           }
           else{
             str = "Out of stock :(";
@@ -172,7 +135,7 @@
    
       let t = JSON.parse(te);
   
-      var it = new dbEntry(t.id, t.nome, t.prezzo, t.quantitàIniziale);
+      var it = new dbEntry(t.id, t.nome, t.prezzo, t.quantità);
   
       artList.arts.push({art: it});
     }
@@ -185,41 +148,72 @@
         if(cart.cArts[0].cArt.nome === "") cart.cArts.pop();
         //console.log("fixContent");
         let selector = item.getAttribute("id");
+        let num = Number(item.childNodes[1].value);
+       
         let flag = false;
         for(c of cart.cArts){
             if(c.cArt.id == selector) {
-              console.log("PRIMA =" + artList.arts[Number(selector)].art.quantitàResidua);
-              artList.arts[Number(selector)].art.quantitàResidua -= 1; 
-              console.log("DOPO =" + artList.arts[Number(selector)].art.quantitàResidua);
-              c.cArt.quantitàIniziale += 1;
+            
+              artList.arts[Number(selector)].art.quantità -= num;         
+        
+              c.cArt.quantità += num;
               flag = true;
             }
           }
         if(!flag){
           let temp = new dbEntry();
           temp.copy(artList.arts[Number(selector)].art);
-          console.log("PRIMA =" + artList.arts[Number(selector)].art.quantitàResidua);
-          artList.arts[Number(selector)].art.quantitàResidua -= 1;  
-          console.log("DOPO =" + artList.arts[Number(selector)].art.quantitàResidua);
-          temp.quantitàIniziale = artList.arts[Number(selector)].art.quantitàIniziale - artList.arts[Number(selector)].art.quantitàResidua;
+  
+          artList.arts[Number(selector)].art.quantità -= num;  
+        
+          temp.quantità = num;
+          //artList.arts[Number(selector)].art.quantitàIniziale - artList.arts[Number(selector)].art.quantitàResidua;
           cart.cArts.push({cArt:temp}); 
         }
         updateTot();
       }
       function reverseSelection(article){
         let selector = article.parentNode.getAttribute("id");
-        artList.arts[Number(selector)].art.quantitàResidua += 1; 
+        artList.arts[Number(selector)].art.quantità += 1; 
         let cartItem;
         for(c of cart.cArts){
             if(c.cArt.id == selector) cartItem = c;
           }
-        cartItem.cArt.quantitàIniziale -= 1;
+        cartItem.cArt.quantità -= 1;
         updateTot();
       }
     </script>
     <script>
-    function processCart(){
+     
+    class order{
+      constructor(id =0, user ="", articoli = Object(), stato ="pending"){
+        this.id = id;
+        this.user = user;
+        this.articoli = articoli;
+        this.stato = stato;
+      }
+    }
 
+    function processCart(){
+      let userMoney = Number(document.getElementById("uMoney").innerHTML);
+      console.log("SALDO =" + userMoney);
+      let totale = Number(document.getElementById("tot").innerHTML);
+      console.log("TOTALE =" + totale);
+      if(totale <= userMoney){
+        userMoney-=totale;
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            let debug = this.responseText;
+            console.log("DEBUG = " + debug);
+          }
+        };
+        xhttp.open("GET", "html/updateSaldo.php?saldo=" + userMoney, true);
+        xhttp.send();
+      }
+      else{
+        alert("Denaro insufficiente!");
+      }
     }
     </script>
 </div>
