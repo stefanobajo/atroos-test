@@ -1,9 +1,8 @@
-<?php 
-  require("html/head.php");
-  include("html/getArticles.php");
+<?php
+  require("phpFiles/head.php");
+  include("phpFiles/getArticles.php");
   //include("html/updateSaldo.php");
 ?>
-</head>
 <body>
 <!-- body -->
 <div id="header">
@@ -54,9 +53,9 @@
     <script>
     function updateTot(){
       let tot = 0;
-      if(cart.cArts.length !== 0){
+      if(cart.cArts.length > 0){
         for(c of cart.cArts){
-          tot += c.cArt.quantità * c.cArt.prezzo; //
+          tot += c.cArt.quantità * c.cArt.prezzo;
         }
       }
       document.getElementById("tot").innerHTML = tot;
@@ -86,8 +85,9 @@
       printData(isCart){
         if(isCart){
           let str = "";
-          if(this.quantità != 0){
-            str = this.quantità + "x " + this.nome + " " + this.prezzo + "<button type='button' onclick='reverseSelection(this)'>X</button>"; //
+          if(this.quantità > 0){
+            str = this.quantità + "x " + this.nome + " " + this.prezzo + "<button type='button' onclick=\"reverseSelection('" + this.id + "')\">X</button>"; 
+            //onclick='reverseSelection(" + this.id + ")'
           }
           else{
             str="";
@@ -97,7 +97,7 @@
         else{
           let str = "";
           if(this.quantità > 0){
-            str = "<span id='" + this.id +"'>" + this.nome + " " + this.prezzo + "</span><input type='number' min='1' max='" + this.quantità + "' value='1' required><button type='button' onclick='transferArticle(this.parentNode);'>Add to Cart</button>";//
+            str = "<span id='" + this.id +"'>" + this.nome + " " + this.prezzo + "</span><input type='number' min='1' max='" + this.quantità + "' value='1' required><button type='button' onclick='transferArticle(this.parentNode);'>Add to Cart</button>";
           }
           else{
             str = "Out of stock :(";
@@ -109,6 +109,9 @@
      
     }  
 
+    //var res = Vue.compile('c.cArt.quantità + "x " + c.cArt.nome + " " + c.cArt.prezzo + "<button type=\"button\" v-on:click=\"deleteItem('" + c.cArt.id + "')\">X</button>"');
+
+
     var cart = new Vue({
       el: '#cart-div',
       data: {
@@ -116,8 +119,10 @@
           {cArt: new dbEntry()}
         ] 
       }
+      
     })
-  
+    //var filtered = array.filter(function(value, index, arr){ 
+    //    return value > 5;
 
     var artList = new Vue({
       el: '#showcase',
@@ -144,8 +149,22 @@
     </script>
 
     <script>
+      var codiceOrdine = -1;
+
       function transferArticle(item){
-        if(cart.cArts[0].cArt.nome === "") cart.cArts.pop();
+        if(cart.cArts[0] != null && cart.cArts[0].cArt.nome === ""){
+          cart.cArts.pop();
+          var xhttp = new XMLHttpRequest();
+          //xhttp.dataType = 'int';
+          xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            codiceOrdine = Number(this.responseText);           
+          }
+        };
+        let currentUser = <?php echo "'" . $_SESSION["loggedUser"] . "'";?>;
+        xhttp.open("GET", "phpFiles/createOrdine.php?user=" + currentUser, true);
+        xhttp.send();
+        } 
         //console.log("fixContent");
         let selector = item.getAttribute("id");
         let num = Number(item.childNodes[1].value);
@@ -168,52 +187,99 @@
         
           temp.quantità = num;
           //artList.arts[Number(selector)].art.quantitàIniziale - artList.arts[Number(selector)].art.quantitàResidua;
-          cart.cArts.push({cArt:temp}); 
+          cart.cArts.push({cArt:temp});
+           
         }
+        
         updateTot();
       }
-      function reverseSelection(article){
-        let selector = article.parentNode.getAttribute("id");
+
+      function reverseSelection(selector){
+
         artList.arts[Number(selector)].art.quantità += 1; 
-        let cartItem;
+        
         for(c of cart.cArts){
-            if(c.cArt.id == selector) cartItem = c;
+            if(c.cArt.id == selector) c.cArt.quantità -= 1;            
           }
-        cartItem.cArt.quantità -= 1;
+        
+        cart.cArts = cart.cArts.filter(function(value){return value.cArt.quantità > 0 ;});
         updateTot();
       }
+
+
     </script>
     <script>
-     
-    class order{
-      constructor(id =0, user ="", articoli = Object(), stato ="pending"){
-        this.id = id;
-        this.user = user;
-        this.articoli = articoli;
-        this.stato = stato;
+
+    /*function cartStringify(){
+      let str = "'articles':[";
+      for(c of cart.cArts){
+        str += "{'id': " + c.cArt.id + ", 'nome': \"" + c.cArt.nome + "\", 'prezzo': " + c.cArt.prezzo + ", 'quantità': " + c.cArt.quantità + '}, ';
       }
-    }
+      str = str.slice(0, str.length - 2);
+      str += "]";
+      return str;
+    }*/
 
     function processCart(){
       let userMoney = Number(document.getElementById("uMoney").innerHTML);
-      console.log("SALDO =" + userMoney);
       let totale = Number(document.getElementById("tot").innerHTML);
-      console.log("TOTALE =" + totale);
       if(totale <= userMoney){
+
+        //_________________________________UPDATE_______SALDO_________________________________________
         userMoney-=totale;
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
           if (this.readyState == 4 && this.status == 200) {
             let debug = this.responseText;
-            console.log("DEBUG = " + debug);
+            document.getElementById("uMoney").innerHTML = userMoney;
           }
         };
-        xhttp.open("GET", "html/updateSaldo.php?saldo=" + userMoney, true);
+        let currentUser = <?php echo "'" . $_SESSION["loggedUser"] . "'";?>;
+        xhttp.open("GET", "phpFiles/updateSaldo.php?saldo=" + userMoney + "&user=" + currentUser, true);
         xhttp.send();
+        
+        //_________________________________UPDATE_______ORDINE_________________________________________
+        var sendOrder = new XMLHttpRequest();
+        var jsonString = JSON.stringify(cart.$data);
+        //var jsonString = jsonString.slice(0, jsonString.length -1) + ", 'id':" + codiceOrdine + "}";
+        sendOrder.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            let debug = this.responseText;
+          }
+        };
+        //console.log("JSONString = " + jsonString);
+        sendOrder.open('GET', 'phpFiles/updateOrdine.php?id=' + codiceOrdine +'&list=' + jsonString, true);
+        sendOrder.send();
+
+        //_________________________________UPDATE_______QUANTITà_________________________________________
+        var newQuantità = new XMLHttpRequest();
+        for(a of artList.arts){
+          console.log("iterazione " + a.art.quantità);
+          newQuantità.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+              let debug = this.responseText;
+              console.log("DEBUG = " + debug);
+            }
+          };
+          newQuantità.open('GET', 'phpFiles/updateQuantità.php?id=' + a.art.id + '&number=' + a.art.quantità, true);
+          newQuantità.send();
+        }
+        
+        //var jsonString = JSON.stringify(cart.$data);
+        //var jsonString = jsonString.slice(0, jsonString.length -1) + ", 'id':" + codiceOrdine + "}";
+        
+
+        cart.cArts = cart.cArts.filter(function(value){return value.cArt.quantità < 0 ;});
+        updateTot();
       }
       else{
         alert("Denaro insufficiente!");
+        for(c of cart.cArts){
+          while(c.cArt.quantità > 0) reverseSelection(c.cArt.id);
+        }
       }
+      
+
     }
     </script>
 </div>
